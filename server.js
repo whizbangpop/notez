@@ -197,10 +197,10 @@ function ensureAuth(req, res, next) {
 		if (!allowedUsers.includes(req.user.id)) {
 			return res.redirect('/logout')
 		}
-	} catch (error) {
+
 		if (req.isAuthenticated()) { return next();  }
 		else res.redirect('/login')
-	} finally {
+	} catch (error) {
 		if (req.isAuthenticated()) { return next();  }
 		else res.redirect('/login')
 	}
