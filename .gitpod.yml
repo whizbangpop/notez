@@ -1,0 +1,5 @@
+tasks:
+  - name: Start Nodemon Service
+    command: npm i -g nodemon && nodemon .
+  - name: Start TailwindCSS Compiler
+    command: npx tailwind -i dist/source.css -o dist/output.css --minify --watch

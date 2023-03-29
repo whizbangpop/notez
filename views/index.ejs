@@ -1,0 +1,57 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Register for Notez</title>
+</head>
+<body>
+	<form action="/register" method="post">
+		<input type="email" name="username" placeholder="Email", value="">
+		<input type="password" name="password" placeholder="Password" value="">
+		<input type="text" name="inviteToken" placeholder="Invite Token" value="">
+
+		<button type="submit">
+			Submit
+		</button>
+	</form>
+	<a href="/auth/github">Login with GitHub</a>
+</body>
+</html> -->
+
+<head>
+	<%- include('partials/head') %>
+	<style>
+		.icons {
+			vertical-align: middle;
+			float: right;
+		}
+	</style>
+</head>
+
+<body class="h-screen bg-gradient-to-br from-amber-400 to-amber-300" >
+	<div class="m-5 bg-indio-500">
+		<% if (!user) { %>
+			<div class="p-3 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
+				<h1 class="text-3xl font-bold ">Welcome! Please log in.</h1>
+				<hr class="h-px my-2 bg-gray-200 border-0 dark:bg-gray-700">
+				<a href="/login" class="font-semibold hover:underline">Login Page</a>
+			</div>
+		<% } else { %>
+			<div class="p-3 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap" >
+				<h1 class="text-3xl font-bold text-slate-950">Hello, <span class="underline"><%= user.username %></span>.</h1>
+				<p class="text-lg font-bold text-slate-900">This is Notez. A private, invite only note taking platform.</p>
+				<hr class="h-px my-2 bg-gray-200 border-0 dark:bg-gray-700">
+				<!-- grid grid-cols-2 text-lg -->
+				<div class="text-lg flex h-auto justify-around md:justify-start sm:justify-normal">
+					<a href="/notes" class="font-bold hover:underline">Notes <i class="fa-solid fa-note-sticky"></i></a>
+					<div class="bg-slate-900 w-[0.75] mx-3"></div>
+					<a href="/support" class="">Support <i class="fa-solid fa-life-ring"></i></a>
+					<div class="bg-slate-900 w-[0.75] mx-3"></div>
+					<a href="/logout" class="float-right justify-end">Logout <i class="fa-solid fa-right-from-bracket"></i></a>
+				</div>
+			</div>
+		<% } %>
+	</div>
+</body>
