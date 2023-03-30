@@ -22,7 +22,7 @@
                 <% for (var i=0; i < notesArray.length; i++) { %>
                     <li>
                         <a href="/notes/<%= notesArray[i].id %>">
-                            <%= notesArray[i].name %>
+                            <%= notesArray[i].title %>
                         </a> &bull; Created <%= notesArray[i].createdAt %>
                     </li>
                     <% } %>

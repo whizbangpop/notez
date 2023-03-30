@@ -16,6 +16,9 @@
     </div>
     <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
         <form action="/notes/new" method="post">
+            <input type="hidden" name="userid" value=<%= user.id %>></input>
+            <input type="hidden" name="username" value=<%= user.username %>></input>
+          
             <label for="noteTitle" class="block mb-2 text-slate-950 font-semibold">Note
                 Title</label>
             <input type="text" name="noteTitle" id="noteTitle" placeholder="My Life Story"
