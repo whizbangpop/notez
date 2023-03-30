@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Editor</title>
+
+    <%- include('spa-partials/head') %>
+</head>
+
+<body class="h-screen bg-gradient-to-br from-amber-400 to-amber-300">
+    <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
+        <h1 class="font-bold text-3xl">New Note</h1>
+    </div>
+    <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
+        <form action="/notes/new" method="post">
+            <input type="hidden" name="userid" value=<%=user.id %>></input>
+            <input type="hidden" name="username" value=<%=user.username %>></input>
+
+            <label for="noteTitle" class="block mb-2 text-slate-950 font-semibold">Note
+                Title</label>
+            <input type="text" name="noteTitle" id="noteTitle" value=<%- noteName %>
+            class="bg-slate-600 border border-slate-800 text-slate-300 text-sm rounded-lg focus:ring-slate-900
+            focus:border-slate-950 block w-full p-2.5"
+            required>
+
+            <label for="noteContent" class="block mb-2 text-slate-900 font-semibold">Note Content</label>
+            <div class="bg-slate-600 border border-slate-800 text-slate-300 text-sm rounded-lg focus:ring-slate-900 focus:border-slate-950 block w-full p-2.5"
+                contenteditable="true"><%- noteContent %></div>
+
+            <label for="publicCheck" class="block mb-2 text-slate-950 font-semibold">Set as Public?</label><input
+                type="checkbox" name="publicCheck" id="publicCheck"
+                class="bg-slate-600 border border-slate-800 text-slate-300 text-sm rounded-lg focus:ring-slate-900 focus:border-slate-950 block p-2.5">
+
+            <button type="submit"
+                class="text-white bg-slate-700 hover:bg-slate-800 focus:ring-4 focus:outline-none focus:ring-slate-300 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center mt-7">Create!</button>
+        </form>
+    </div>
+</body>
+
+</html>
