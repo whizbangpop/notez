@@ -1,0 +1,15 @@
+<div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
+    <h1 class="text-3xl font-bold text-slate-950">Hello, <span class="underline">
+            <%= user.username %>
+        </span></h1>
+    <p class="text-lg font-bold text-slate-900">This is Notez. A private, invite only note taking platform.</p>
+    <hr class="h-px my-2 bg-gray-200 border-0 dark:bg-gray-700">
+    <!-- grid grid-cols-2 text-lg -->
+    <div class="text-lg flex h-auto justify-around md:justify-start sm:justify-normal">
+        <a href="/notes" class="font-bold hover:underline">Notes <i class="fa-solid fa-note-sticky"></i></a>
+        <div class="bg-slate-900 w-[0.75] mx-3"></div>
+        <a href="/support" class="">Support <i class="fa-solid fa-life-ring"></i></a>
+        <div class="bg-slate-900 w-[0.75] mx-3"></div>
+        <a href="/logout" class="float-right justify-end">Logout <i class="fa-solid fa-right-from-bracket"></i></a>
+    </div>
+</div>

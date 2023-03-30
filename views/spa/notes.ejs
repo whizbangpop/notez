@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <%- include('spa-partials/head') %>
+</head>
+
+<body class="h-screen bg-gradient-to-br from-amber-400 to-amber-300">
+    <%- include('spa-partials/header'), { user: user } %>
+        <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap"">
+        <a class=" font-semibold" href="/notes/new" role="button" type="button" data-te-collapse-init>New Note <i
+                class=" fa-solid fa-pencil"></i></a>
+        </div>
+        <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
+            <h1 class="text-3xl font-bold text-slate-950">Your Notez:</h1>
+            <ul class="list-none">
+                <% for (var i=0; i < notesArray.length; i++) { %>
+                    <li>
+                        <a href="/notes/<%= notesArray[i].id %>">
+                            <%= notesArray[i].name %>
+                        </a> &bull; Created <%= notesArray[i].createdAt %>
+                    </li>
+                    <% } %>
+            </ul>
+        </div>
+</body>
+
+</html>
