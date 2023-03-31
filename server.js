@@ -82,7 +82,7 @@ Passport.use(User.createStrategy());
 Passport.use(new GitHubStrategy({
 	clientID: config['github-oauth'].client_id,
 	clientSecret: config['github-oauth'].client_secret,
-	callbackURL: "http://localhost:4000/auth/github/callback"
+	callbackURL: `${config.server.url}/auth/github/callback`
 },
 	function (accessToken, refreshToken, profile, done) {
 		process.nextTick(function () {
@@ -94,7 +94,7 @@ Passport.use(new GitHubStrategy({
 const discordStrat = new DiscordStrategy({
 	clientID: config['discord-oauth'].client_id,
 	clientSecret: config['discord-oauth'].client_secret,
-	callbackURL: "http://localhost:4000/auth/discord/callback",
+	callbackURL: `${config.server.url}/auth/discord/callback`,
 	scope: ['identify', 'email']
 },
 	function (accessToken, refreshToken, profile, done) {
