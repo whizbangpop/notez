@@ -6,6 +6,7 @@ const PassportLocalMongoose = require('passport-local-mongoose');
 const GitHubStrategy = require('passport-github2').Strategy;
 const DiscordStrategy = require('passport-discord').Strategy;
 const Refresh = require('passport-oauth2-refresh');
+const Path = require("path");
 
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
@@ -186,6 +187,11 @@ app.post("/notes/edit/:id", async (req, res) => {
 	} catch (e) {
 		throw new Error(e)
 	}
+})
+
+// Media Manager
+app.get("/media/:userid/:mediatype/:filename", async (req, res) => {
+	res.sendFile(Path.join(__dirname, 'storage/', req.params.userid, req.params.mediatype, req.params.filename))
 })
 
 app.get("/login", async (req, res) => {
