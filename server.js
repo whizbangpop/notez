@@ -153,7 +153,7 @@ app.post("/notes/new", async (req, res) => {
 app.get("/notes/:id", async (req, res) => {
 	try {
 		console.log(req.params)
-		const noteObj = await Note.findOne({ ownerId: req.user.id });
+		const noteObj = await Note.findOne({ id: req.params.id });
 		console.log(noteObj)
 		res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1" })
 	} catch (e) {
