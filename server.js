@@ -18,18 +18,18 @@ const app = Express();
 const port = 4000;
 
 Sentry.init({
-  dsn: config.sentry.dsn,
-  integrations: [
-    // enable HTTP calls tracing
-    new Sentry.Integrations.Http({ tracing: true }),
-    // enable Express.js middleware tracing
-    new Tracing.Integrations.Express({ app }),
-  ],
+	dsn: config.sentry.dsn,
+	integrations: [
+		// enable HTTP calls tracing
+		new Sentry.Integrations.Http({ tracing: true }),
+		// enable Express.js middleware tracing
+		new Tracing.Integrations.Express({ app }),
+	],
 
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  // We recommend adjusting this value in production
-  tracesSampleRate: 1.0,
+	// Set tracesSampleRate to 1.0 to capture 100%
+	// of transactions for performance monitoring.
+	// We recommend adjusting this value in production
+	tracesSampleRate: 1.0,
 });
 
 app.use(Sentry.Handlers.requestHandler());
@@ -47,32 +47,32 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
 app.use(Session({
-  secret: "4Jp*9Z9wbaVGHjAJ7K3Q&&5pcF#*mVWHG$%z!26Efm8P$SGqjym**wHNG8*#8NdXfc@C3@WQ4E9qxPPDNfjD5apv2S%qoPcQb&J4Mv*o^PorYVfe^is^eb^cQo%4d5Vi",
-  resave: false,
-  saveUninitialized: false
+	secret: "4Jp*9Z9wbaVGHjAJ7K3Q&&5pcF#*mVWHG$%z!26Efm8P$SGqjym**wHNG8*#8NdXfc@C3@WQ4E9qxPPDNfjD5apv2S%qoPcQb&J4Mv*o^PorYVfe^is^eb^cQo%4d5Vi",
+	resave: false,
+	saveUninitialized: false
 }));
 
 app.use(Passport.initialize());
 app.use(Passport.session());
 
 Mongoose.connect('mongodb+srv://appauth:9RqaUNNVkyRwI2ch@cluster0.nxldnrc.mongodb.net/?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+	useNewUrlParser: true,
+	useUnifiedTopology: true
 })
 
 const userSchema = new Mongoose.Schema({
-  email: String,
-  password: String
+	email: String,
+	password: String
 })
 userSchema.plugin(PassportLocalMongoose);
 
 const noteSchema = new Mongoose.Schema({
-  title: String,
-  content: String,
-  id: String, // UserID + Title
-  public: Boolean, // Default to False (private)
-  ownerId: String,
-  ownerName: String
+	title: String,
+	content: String,
+	id: String, // UserID + Title
+	public: Boolean, // Default to False (private)
+	ownerId: String,
+	ownerName: String
 })
 
 const User = new Mongoose.model("UserAuthTable", userSchema);
@@ -80,200 +80,204 @@ const Note = new Mongoose.model("NotesTable", noteSchema);
 Passport.use(User.createStrategy());
 
 Passport.use(new GitHubStrategy({
-  clientID: config['github-oauth'].client_id,
-  clientSecret: config['github-oauth'].client_secret,
-  callbackURL: "https://notez.summerisadev.repl.co/auth/github/callback"
+	clientID: config['github-oauth'].client_id,
+	clientSecret: config['github-oauth'].client_secret,
+	callbackURL: "http://localhost:4000/auth/github/callback"
 },
-  function(accessToken, refreshToken, profile, done) {
-    process.nextTick(function() {
-      return done(null, profile);
-    });
-  }
+	function (accessToken, refreshToken, profile, done) {
+		process.nextTick(function () {
+			return done(null, profile);
+		});
+	}
 ));
 
 const discordStrat = new DiscordStrategy({
-  clientID: config['discord-oauth'].client_id,
-  clientSecret: config['discord-oauth'].client_secret,
-  callbackURL: "https://notez.summerisadev.repl.co/auth/discord/callback",
-  scope: ['identify', 'email']
+	clientID: config['discord-oauth'].client_id,
+	clientSecret: config['discord-oauth'].client_secret,
+	callbackURL: "http://localhost:4000/auth/discord/callback",
+	scope: ['identify', 'email']
 },
-  function(accessToken, refreshToken, profile, done) {
-    process.nextTick(function() {
-      profile.refreshToken = refreshToken
-      return done(null, profile);
-    });
-  })
+	function (accessToken, refreshToken, profile, done) {
+		process.nextTick(function () {
+			profile.refreshToken = refreshToken
+			return done(null, profile);
+		});
+	})
 Passport.use(discordStrat)
 Refresh.use(discordStrat)
 
-Passport.serializeUser(function(user, done) {
-  done(null, user);
+Passport.serializeUser(function (user, done) {
+	done(null, user);
 });
 
-Passport.deserializeUser(function(obj, done) {
-  done(null, obj);
+Passport.deserializeUser(function (obj, done) {
+	done(null, obj);
 });
 
-app.get("/auth/github", Passport.authenticate('github', { scope: ['user:email'] }), function(req, res) { });
-app.get("/auth/github/callback", Passport.authenticate('github', { failureRedirect: '/login' }), function(req, res) {
-  res.redirect('/')
+app.get("/auth/github", Passport.authenticate('github', { scope: ['user:email'] }), function (req, res) { });
+app.get("/auth/github/callback", Passport.authenticate('github', { failureRedirect: '/login' }), function (req, res) {
+	res.redirect('/')
 })
 
 app.get("/auth/discord", Passport.authenticate('discord'));
-app.get("/auth/discord/callback", Passport.authenticate('discord', { failureRedirect: "/login" }), function(req, res) {
-  res.redirect('/')
+app.get("/auth/discord/callback", Passport.authenticate('discord', { failureRedirect: "/login" }), function (req, res) {
+	res.redirect('/')
 })
 
 app.get("/", ensureAuth, async (req, res) => {
-  const data = await Note.find({ ownerId: req.user.id });
-  console.log(data)
-  const notesArray = []
-  res.render('spa/notes', { user: req.user, notesArray: data })
+	const data = await Note.find({ ownerId: req.user.id });
+	console.log(data)
+	const notesArray = []
+	res.render('spa/notes', { user: req.user, notesArray: data })
 })
 
 app.get("/notes/new", ensureAuth, async (req, res) => {
-  res.render('spa/new', { user: req.user })
+	res.render('spa/new', { user: req.user })
 })
 app.post("/notes/new", async (req, res) => {
-  const newNote = new Note()
-  const title1 = req.body.noteTitle.replace(/[^0-9a-z]/gi, '')
-  const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
+	const newNote = new Note()
+	const title1 = req.body.noteTitle.replace(/[^0-9a-z]/gi, '')
+	const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
 
-  newNote.title = req.body.noteTitle;
-  newNote.content = conten1;
-  newNote.id = `${title1}-${req.body.userid}`;
-  newNote.ownerId = req.body.userid;
-  newNote.ownerName = req.body.username;
-  newNote.public = false
-  newNote.save()
-  console.log(newNote)
-  res.redirect(`/notes/${title1}-${req.body.userid}`)
+	newNote.title = req.body.noteTitle;
+	newNote.content = conten1;
+	newNote.id = `${title1}-${req.body.userid}`;
+	newNote.ownerId = req.body.userid;
+	newNote.ownerName = req.body.username;
+	newNote.public = false
+	newNote.save()
+	console.log(newNote)
+	res.redirect(`/notes/${title1}-${req.body.userid}`)
 })
 
 app.get("/notes/:id", async (req, res) => {
-  try {
-    console.log(req.params)
-    const noteObj = await Note.findOne({ id: req.params.id });
-    console.log(noteObj)
-    res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1" })
-  } catch (e) {
-    throw new Error(e)
-  }
+	try {
+		console.log(req.params)
+		const noteObj = await Note.findOne({ id: req.params.id });
+		console.log(noteObj)
+		res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1" })
+	} catch (e) {
+		throw new Error(e)
+	}
 })
 
 app.get("/notes/edit/:id", async (req, res) => {
-  try {
-    const data = await Note.findOne({ id: req.params.id })
-    res.render('spa/editor', { noteName: data.title, noteContent: data.content, user: req.user })
-  } catch (error) {
-    throw new Error(error)
-  }
+	try {
+		const data = await Note.findOne({ id: req.params.id })
+		console.log(data.title)
+		res.render('spa/editor', { noteName: data.title, noteContent: data.content, user: req.user, noteId: req.params.id })
+	} catch (error) {
+		throw new Error(error)
+	}
 })
 app.post("/notes/edit/:id", async (req, res) => {
-  try {
-    const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
-    
-    const data = await Note.findOneAndUpdate({ id: req.params.id })
-    data.title = req.body.noteTitle;
-    data.content = conten1;
-    data.public = false;
-    data.save();
-    res.redirect(`/notes/${req.params.id}`)
-  } catch (e) {
-    throw new Error(e)
-  }
+	try {
+
+		console.log(req.body)
+
+		const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
+
+		const data = await Note.findOneAndUpdate({ id: req.params.id })
+		data.title = req.body.noteTitle;
+		data.content = conten1;
+		data.public = false;
+		data.save();
+		res.redirect(`/notes/${req.params.id}`)
+	} catch (e) {
+		throw new Error(e)
+	}
 })
 
 app.get("/login", async (req, res) => {
-  if (req.isAuthenticated()) {
-    res.send("No need to log in again! You're already logged in and authenticated.")
-  } else {
-    res.render('login')
-  }
+	if (req.isAuthenticated()) {
+		res.send("No need to log in again! You're already logged in and authenticated.")
+	} else {
+		res.render('login')
+	}
 })
 app.get("/register", async (req, res) => {
-  if (req.isAuthenticated()) {
-    res.redirect("/")
-  } else {
-    res.render('register')
-  }
+	if (req.isAuthenticated()) {
+		res.redirect("/")
+	} else {
+		res.render('register')
+	}
 })
 app.get("/account", ensureAuth, async (req, res) => {
-  res.render('account', { user: req.user })
+	res.render('account', { user: req.user })
 })
-app.get("/logout", async function(req, res) {
-  req.logout(function(err) {
-    if (err) { return next(err); }
-    res.render('logout.ejs')
-  });
+app.get("/logout", async function (req, res) {
+	req.logout(function (err) {
+		if (err) { return next(err); }
+		res.render('logout.ejs')
+	});
 })
 
 app.post("/register", async (req, res) => {
-  var email = req.body.username;
-  var password = req.body.password;
-  var inviteToken = "catzwiththebeanz";
+	var email = req.body.username;
+	var password = req.body.password;
+	var inviteToken = "catzwiththebeanz";
 
-  if (req.body.inviteToken !== inviteToken) {
-    return res.send("Invalid Invite Token")
-  } else {
-    User.register({ username: email }, req.body.password, function(err, user) {
-      if (err) {
-        console.log(err)
-      } else {
-        Passport.authenticate("local")(req, res, function() {
-          res.send("Saved successfully!")
-        })
-      }
-    })
-  }
+	if (req.body.inviteToken !== inviteToken) {
+		return res.send("Invalid Invite Token")
+	} else {
+		User.register({ username: email }, req.body.password, function (err, user) {
+			if (err) {
+				console.log(err)
+			} else {
+				Passport.authenticate("local")(req, res, function () {
+					res.send("Saved successfully!")
+				})
+			}
+		})
+	}
 })
 app.post("/login", async (req, res) => {
-  const userToBeChecked = new User({
-    email: req.body.username,
-    password: req.body.password,
-  })
+	const userToBeChecked = new User({
+		email: req.body.username,
+		password: req.body.password,
+	})
 
-  req.login(userToBeChecked, function(err) {
-    if (err) {
-      console.log(err)
-      res.redirect("/login")
-    } else {
-      Passport.authenticate("local")(req, res, function() {
-        try {
-          const newUser = User.find({ email: req.user.username })
-          res.send("Logged in!")
-        } catch (error) {
-          throw new Error(error)
-        }
-      })
-    }
+	req.login(userToBeChecked, function (err) {
+		if (err) {
+			console.log(err)
+			res.redirect("/login")
+		} else {
+			Passport.authenticate("local")(req, res, function () {
+				try {
+					const newUser = User.find({ email: req.user.username })
+					res.send("Logged in!")
+				} catch (error) {
+					throw new Error(error)
+				}
+			})
+		}
 
-  })
+	})
 })
 
 app.use(Sentry.Handlers.errorHandler());
 app.use(function onError(err, req, res, next) {
-  res.statusCode = 500;
-  res.end(res.sentry + "\n");
-  console.log(err)
+	res.statusCode = 500;
+	res.end(res.sentry + "\n");
+	console.log(err)
 });
 
 
 app.listen(port, () => {
-  console.log("Server is live on port ", port)
+	console.log("Server is live on port ", port)
 })
 
 function ensureAuth(req, res, next) {
-  try {
-    if (!allowedUsers.includes(req.user.id)) {
-      return res.redirect('/logout')
-    }
+	try {
+		if (!allowedUsers.includes(req.user.id)) {
+			return res.redirect('/logout')
+		}
 
-    if (req.isAuthenticated()) { return next(); }
-    else res.redirect('/login')
-  } catch (error) {
-    if (req.isAuthenticated()) { return next(); }
-    else res.redirect('/login')
-  }
+		if (req.isAuthenticated()) { return next(); }
+		else res.redirect('/login')
+	} catch (error) {
+		if (req.isAuthenticated()) { return next(); }
+		else res.redirect('/login')
+	}
 
 }
