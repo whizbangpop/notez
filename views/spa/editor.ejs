@@ -12,7 +12,7 @@
 
 <body class="h-screen bg-gradient-to-br from-amber-400 to-amber-300">
     <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
-        <h1 class="font-bold text-3xl">New Note</h1>
+        <h1 class="font-bold text-3xl">Note Editor</h1>
     </div>
     <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
         <form>
@@ -43,7 +43,7 @@
         function UpdateNoteSubmit() {
             const noteTitle = document.getElementById("noteTitle").value;
             const noteContent = document.querySelector('[contenteditable]')
-            const text = noteContent.textContent;
+            const text = noteContent.innerHTML;
             const userid = (<%= user.id %>);
 
             fetch('/notes/edit/<%= noteId %>', {

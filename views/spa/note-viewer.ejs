@@ -15,6 +15,13 @@
       <h1 class="text-3xl font-semibold"><%= noteName %></h1>
       <p>Created On <%= createdOn %></p>
     </div>
+    <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
+      <div class="text-lg flex h-auto justify-around md:justify-start sm:justify-normal">
+        <a href="/notes/edit/<%= id %>" class="">Edit <i class="fa-solid fa-pencil"></i></a>
+        <div class="bg-slate-900 w-[0.75] mx-3"></div>
+        <a href="/notes/delete/<%= id %>" class="float-right justify-end">Delete <i class="fa-solid fa-trash"></i></a>
+      </div>
+    </div>
   <div class="p-3 m-5 border border-slate-900 rounded-lg bg-slate-700 bg-opacity-60 whitespace-no-wrap">
     <% var noteCon = noteContent; noteCon.replace('\n', '<br>')%>
       <p><%- noteCon.replace('\r', '<br>') %></p>

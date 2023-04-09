@@ -37,7 +37,11 @@ app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
 app.use(Express.static("dist"));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({
+	extended: true
+}));
+app.use(Express.json());
+app.use(Express.urlencoded());
 // app.set("trust proxy", 1)
 // app.use(Session({
 // 	secret: "4Jp*9Z9wbaVGHjAJ7K3Q&&5pcF#*mVWHG$%z!26Efm8P$SGqjym**wHNG8*#8NdXfc@C3@WQ4E9qxPPDNfjD5apv2S%qoPcQb&J4Mv*o^PorYVfe^is^eb^cQo%4d5Vi",
@@ -127,7 +131,6 @@ app.get("/auth/discord/callback", Passport.authenticate('discord', { failureRedi
 
 app.get("/", ensureAuth, async (req, res) => {
 	const data = await Note.find({ ownerId: req.user.id });
-	console.log(data)
 	const notesArray = []
 	res.render('spa/notes', { user: req.user, notesArray: data })
 })
@@ -136,6 +139,10 @@ app.get("/notes/new", ensureAuth, async (req, res) => {
 	res.render('spa/new', { user: req.user })
 })
 app.post("/notes/new", async (req, res) => {
+	if (!req.user || req.isUnauthenticated()) {
+		return res.redirect("/login")
+	}
+
 	const newNote = new Note()
 	const title1 = req.body.noteTitle.replace(/[^0-9a-z]/gi, '')
 	const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
@@ -147,7 +154,6 @@ app.post("/notes/new", async (req, res) => {
 	newNote.ownerName = req.body.username;
 	newNote.public = false
 	newNote.save()
-	console.log(newNote)
 	res.redirect(`/notes/${title1}-${req.body.userid}`)
 })
 
@@ -155,8 +161,19 @@ app.get("/notes/:id", async (req, res) => {
 	try {
 		console.log(req.params)
 		const noteObj = await Note.findOne({ id: req.params.id });
-		console.log(noteObj)
-		res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1" })
+		if (!noteObj || noteObj === undefined) {
+			return res.status(404).send("Cannot find note")
+		}
+
+		if (!noteObj.public) {
+			if (!req.user || req.isUnauthenticated()) {
+				return res.redirect('/login')
+			} else {
+				res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1", id: req.params.id })
+			}
+		} else {
+			res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1", id: req.params.id })
+		}
 	} catch (e) {
 		throw new Error(e)
 	}
@@ -164,18 +181,20 @@ app.get("/notes/:id", async (req, res) => {
 
 app.get("/notes/edit/:id", async (req, res) => {
 	try {
+		if (!req.user || req.isUnauthenticated()) {
+			return res.redirect("/login")
+		}
+
 		const data = await Note.findOne({ id: req.params.id })
-		console.log(data.title)
 		res.render('spa/editor', { noteName: data.title, noteContent: data.content, user: req.user, noteId: req.params.id })
+
+		console.log("new edit")
 	} catch (error) {
 		throw new Error(error)
 	}
 })
 app.post("/notes/edit/:id", async (req, res) => {
 	try {
-
-		console.log(req.body)
-
 		const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
 
 		const data = await Note.findOneAndUpdate({ id: req.params.id })
@@ -183,9 +202,18 @@ app.post("/notes/edit/:id", async (req, res) => {
 		data.content = conten1;
 		data.public = false;
 		data.save();
-		res.redirect(`/notes/${req.params.id}`)
+		return res.redirect(`/notes/${req.params.id}`)
 	} catch (e) {
 		throw new Error(e)
+	}
+})
+
+app.get("/notes/delete/:id", async (req, res) => {
+	try {
+		const note = await Note.deleteOne({ id: req.params.id })
+		res.render('spa/deleted', { noteName: req.params.id })
+	} catch (error) {
+		throw new Error(error)
 	}
 })
 
