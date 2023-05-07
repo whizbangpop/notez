@@ -42,17 +42,10 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(Express.json());
 app.use(Express.urlencoded());
-// app.set("trust proxy", 1)
-// app.use(Session({
-// 	secret: "4Jp*9Z9wbaVGHjAJ7K3Q&&5pcF#*mVWHG$%z!26Efm8P$SGqjym**wHNG8*#8NdXfc@C3@WQ4E9qxPPDNfjD5apv2S%qoPcQb&J4Mv*o^PorYVfe^is^eb^cQo%4d5Vi",
-// 	resave: false,
-// 	saveUninitialized: true,
-// 	cookie: { secure: true }
-// }))
 app.set('view engine', 'ejs');
 
 app.use(Session({
-	secret: "4Jp*9Z9wbaVGHjAJ7K3Q&&5pcF#*mVWHG$%z!26Efm8P$SGqjym**wHNG8*#8NdXfc@C3@WQ4E9qxPPDNfjD5apv2S%qoPcQb&J4Mv*o^PorYVfe^is^eb^cQo%4d5Vi",
+	secret: config.server.secret,
 	resave: false,
 	saveUninitialized: false
 }));
@@ -60,7 +53,7 @@ app.use(Session({
 app.use(Passport.initialize());
 app.use(Passport.session());
 
-Mongoose.connect('mongodb+srv://appauth:9RqaUNNVkyRwI2ch@cluster0.nxldnrc.mongodb.net/?retryWrites=true&w=majority', {
+Mongoose.connect(config.db.connector, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true
 })
@@ -229,16 +222,16 @@ app.get("/login", async (req, res) => {
 		res.render('login')
 	}
 })
-app.get("/register", async (req, res) => {
-	if (req.isAuthenticated()) {
-		res.redirect("/")
-	} else {
-		res.render('register')
-	}
-})
-app.get("/account", ensureAuth, async (req, res) => {
-	res.render('account', { user: req.user })
-})
+// app.get("/register", async (req, res) => {
+// 	if (req.isAuthenticated()) {
+// 		res.redirect("/")
+// 	} else {
+// 		res.render('register')
+// 	}
+// })
+// app.get("/account", ensureAuth, async (req, res) => {
+// 	res.render('account', { user: req.user })
+// })
 app.get("/logout", async function (req, res) {
 	req.logout(function (err) {
 		if (err) { return next(err); }
@@ -246,48 +239,48 @@ app.get("/logout", async function (req, res) {
 	});
 })
 
-app.post("/register", async (req, res) => {
-	var email = req.body.username;
-	var password = req.body.password;
-	var inviteToken = "catzwiththebeanz";
+// app.post("/register", async (req, res) => {
+// 	var email = req.body.username;
+// 	var password = req.body.password;
+// 	var inviteToken = "catzwiththebeanz";
 
-	if (req.body.inviteToken !== inviteToken) {
-		return res.send("Invalid Invite Token")
-	} else {
-		User.register({ username: email }, req.body.password, function (err, user) {
-			if (err) {
-				console.log(err)
-			} else {
-				Passport.authenticate("local")(req, res, function () {
-					res.send("Saved successfully!")
-				})
-			}
-		})
-	}
-})
-app.post("/login", async (req, res) => {
-	const userToBeChecked = new User({
-		email: req.body.username,
-		password: req.body.password,
-	})
+// 	if (req.body.inviteToken !== inviteToken) {
+// 		return res.send("Invalid Invite Token")
+// 	} else {
+// 		User.register({ username: email }, req.body.password, function (err, user) {
+// 			if (err) {
+// 				console.log(err)
+// 			} else {
+// 				Passport.authenticate("local")(req, res, function () {
+// 					res.send("Saved successfully!")
+// 				})
+// 			}
+// 		})
+// 	}
+// })
+// app.post("/login", async (req, res) => {
+// 	const userToBeChecked = new User({
+// 		email: req.body.username,
+// 		password: req.body.password,
+// 	})
 
-	req.login(userToBeChecked, function (err) {
-		if (err) {
-			console.log(err)
-			res.redirect("/login")
-		} else {
-			Passport.authenticate("local")(req, res, function () {
-				try {
-					const newUser = User.find({ email: req.user.username })
-					res.send("Logged in!")
-				} catch (error) {
-					throw new Error(error)
-				}
-			})
-		}
+// 	req.login(userToBeChecked, function (err) {
+// 		if (err) {
+// 			console.log(err)
+// 			res.redirect("/login")
+// 		} else {
+// 			Passport.authenticate("local")(req, res, function () {
+// 				try {
+// 					const newUser = User.find({ email: req.user.username })
+// 					res.send("Logged in!")
+// 				} catch (error) {
+// 					throw new Error(error)
+// 				}
+// 			})
+// 		}
 
-	})
-})
+// 	})
+// })
 
 app.use(Sentry.Handlers.errorHandler());
 app.use(function onError(err, req, res, next) {
