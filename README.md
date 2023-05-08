@@ -10,7 +10,7 @@ A lightweight, private note taking and file hosting platform.
 
 ## Documentation
 
-Docs Here > [https://archbee.services.quickexit.cc/notez](https://archbee.services.quickexit.cc/notez)s
+Docs Here > [https://archbee.services.quickexit.cc/notez](https://archbee.services.quickexit.cc/notez)
 
 ## Tech Stack
 
