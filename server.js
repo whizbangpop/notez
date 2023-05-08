@@ -15,6 +15,9 @@ const bodyParser = require('body-parser');
 const config = require('./config.json');
 const allowedUsers = require('./allowedUser.json');
 
+const Firebase = require("@firebase/app");
+require("@firebase/storage");
+
 const app = Express();
 const port = 4000;
 
@@ -33,7 +36,12 @@ Sentry.init({
 	tracesSampleRate: 1.0,
 });
 
-app.use(Sentry.Handlers.requestHandler());
+const fbase = Firebase.initializeApp(config.firebaseConfig);
+const fstore = fbase.
+
+	fstore.app.
+
+	app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
 app.use(Express.static("dist"));
