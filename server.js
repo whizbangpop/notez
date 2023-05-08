@@ -1,91 +1,121 @@
-const Express = require('express');
-const Passport = require('passport');
-const Mongoose = require('mongoose');
-const Session = require('express-session');
-const PassportLocalMongoose = require('passport-local-mongoose');
-const GitHubStrategy = require('passport-github2').Strategy;
-const DiscordStrategy = require('passport-discord').Strategy;
-const Refresh = require('passport-oauth2-refresh');
-const Path = require("path");
+// Express Imports
+import express from "express";
+import session from "express-session";
+import bodyParser from "body-parser";
+import morgan from "morgan";
 
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
+// Passport Imports
+import passport from "passport";
+import passportLocalMongoose from "passport-local-mongoose";
+import githubStrategy from "passport-github2";
+import discordStrategy from "passport-discord";
+import refresh from "passport-oauth2-refresh";
 
-const bodyParser = require('body-parser');
-const config = require('./config.json');
-const allowedUsers = require('./allowedUser.json');
+// Sentry Imports
+import sentry from "@sentry/node";
+import tracing from "@sentry/tracing";
 
-const Firebase = require("@firebase/app");
-require("@firebase/storage");
+// Misc Imports
+import mongoose, { Mongoose } from "mongoose";
+import path from "path";
+import simpleNodeLogger from "simple-node-logger";
+import https from "https";
+import fs from "fs";
 
-const app = Express();
-const port = 4000;
+// Config Imports
+import config from "./config.json" assert {
+	type: 'json',
+	integrity: 'sha384-ABC123'
+};
+import allowedUsers from "./allowedUser.json" assert {
+	type: 'json',
+	integrity: 'sha384-ABC123'
+};
 
-Sentry.init({
+// Firebase Imports
+import { initializeApp } from "@firebase/app";
+import { getStorage, ref, getDownloadURL, getBlob, getStream } from "@firebase/storage";
+import { Storage } from "@google-cloud/storage";
+import { url } from "inspector";
+
+// Create Simple Node Logger instance
+const log = simpleNodeLogger.createSimpleLogger("logs/notez-backend.log");
+
+// Create Express Server
+const server = express();
+log.debug("Express server created");
+
+// Initialise & Connect Sentry Middleware
+sentry.init({
 	dsn: config.sentry.dsn,
 	integrations: [
-		// enable HTTP calls tracing
-		new Sentry.Integrations.Http({ tracing: true }),
-		// enable Express.js middleware tracing
-		new Tracing.Integrations.Express({ app }),
+		new sentry.Integrations.Http({ tracing: true }),
+		new tracing.Integrations.Express({ server }),
 	],
-
-	// Set tracesSampleRate to 1.0 to capture 100%
-	// of transactions for performance monitoring.
-	// We recommend adjusting this value in production
-	tracesSampleRate: 1.0,
+	tracesSampleRate: 0.85,
 });
 
-const fbase = Firebase.initializeApp(config.firebaseConfig);
-const fstore = fbase.
+server.use(sentry.Handlers.requestHandler());
+server.use(sentry.Handlers.tracingHandler());
+log.debug("Sentry initialised & connected");
 
-	fstore.app.
+// Initialise & Connect to Firebase Blob Storage
+log.debug("Connecting to Firebase Blob Storage");
+const fBase = initializeApp(config.firebaseConfig);
+/** The root Firebase Blob Storage folder */
+const blobStorage = getStorage(fBase);
+log.info("Connected to Firebase Blob Storage");
 
-	app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
-
-app.use(Express.static("dist"));
-app.use(bodyParser.urlencoded({
+// Generic Express Middleware Setup
+// server.use(express.static("dist"));
+server.use(bodyParser.urlencoded({
 	extended: true
 }));
-app.use(Express.json());
-app.use(Express.urlencoded());
-app.set('view engine', 'ejs');
+server.use(express.json());
+server.use(express.urlencoded());
+server.set('view engine', 'ejs');
+log.debug("Express Middleware configured");
 
-app.use(Session({
+// Configure Morgan
+server.use(morgan(":method :url :status :response-time ms - :res[content-length]"));
+log.debug("Morgan configured");
+
+// Configure Express Sessions
+server.use(session({
 	secret: config.server.secret,
 	resave: false,
 	saveUninitialized: false
 }));
+log.debug("Express sessions configured");
 
-app.use(Passport.initialize());
-app.use(Passport.session());
+// Initialise & Connect Passport
+// Thus *may* be changing to Firebase Auth, still looking into it
+server.use(passport.initialize());
+server.use(passport.session());
+log.debug("Passport configured");
 
-Mongoose.connect(config.db.connector, {
+// Connect to MongoDB database
+log.debug("Connecting to MongoDB")
+mongoose.connect(config.db.connector, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true
-})
+});
+log.info("Connected to MongoDB");
 
-const userSchema = new Mongoose.Schema({
-	email: String,
-	password: String
-})
-userSchema.plugin(PassportLocalMongoose);
-
-const noteSchema = new Mongoose.Schema({
+// Create Basic Note Schema
+const noteSchema = new mongoose.Schema({
 	title: String,
 	content: String,
-	id: String, // UserID + Title
-	public: Boolean, // Default to False (private)
+	id: String,
+	public: Boolean,
 	ownerId: String,
 	ownerName: String
-})
+});
+const Note = new mongoose.model("NotesTable", noteSchema);
+log.debug("Note schema created");
 
-const User = new Mongoose.model("UserAuthTable", userSchema);
-const Note = new Mongoose.model("NotesTable", noteSchema);
-Passport.use(User.createStrategy());
-
-Passport.use(new GitHubStrategy({
+// Configure Passport Strategys
+passport.use(new githubStrategy({
 	clientID: config['github-oauth'].client_id,
 	clientSecret: config['github-oauth'].client_secret,
 	callbackURL: `${config.server.url}/auth/github/callback`
@@ -96,8 +126,9 @@ Passport.use(new GitHubStrategy({
 		});
 	}
 ));
+log.debug("Created GitHub Passport strategy");
 
-const discordStrat = new DiscordStrategy({
+const discordStrat = new discordStrategy({
 	clientID: config['discord-oauth'].client_id,
 	clientSecret: config['discord-oauth'].client_secret,
 	callbackURL: `${config.server.url}/auth/discord/callback`,
@@ -105,203 +136,35 @@ const discordStrat = new DiscordStrategy({
 },
 	function (accessToken, refreshToken, profile, done) {
 		process.nextTick(function () {
-			profile.refreshToken = refreshToken
+			profile.refreshToken = refreshToken;
 			return done(null, profile);
 		});
-	})
-Passport.use(discordStrat)
-Refresh.use(discordStrat)
+	});
+passport.use(discordStrat);
+refresh.use(discordStrat);
+log.debug("Created Discord Passport strategy");
 
-Passport.serializeUser(function (user, done) {
+// Passport Things
+passport.serializeUser(function (user, done) {
 	done(null, user);
 });
 
-Passport.deserializeUser(function (obj, done) {
+passport.deserializeUser(function (obj, done) {
 	done(null, obj);
 });
 
-app.get("/auth/github", Passport.authenticate('github', { scope: ['user:email'] }), function (req, res) { });
-app.get("/auth/github/callback", Passport.authenticate('github', { failureRedirect: '/login' }), function (req, res) {
+// Passport Auth Routes
+server.get("/auth/github", passport.authenticate("github", { scope: ['user:email'] }), function (req, res) { });
+server.get("/auth/github/callback", passport.authenticate('github', { failureRedirect: '/login' }), function (req, res) {
 	res.redirect('/')
 })
 
-app.get("/auth/discord", Passport.authenticate('discord'));
-app.get("/auth/discord/callback", Passport.authenticate('discord', { failureRedirect: "/login" }), function (req, res) {
+server.get("/auth/discord", passport.authenticate('discord'));
+server.get("/auth/discord/callback", passport.authenticate('discord', { failureRedirect: "/login" }), function (req, res) {
 	res.redirect('/')
 })
 
-app.get("/", ensureAuth, async (req, res) => {
-	const data = await Note.find({ ownerId: req.user.id });
-	const notesArray = []
-	res.render('spa/notes', { user: req.user, notesArray: data })
-})
-
-app.get("/notes/new", ensureAuth, async (req, res) => {
-	res.render('spa/new', { user: req.user })
-})
-app.post("/notes/new", async (req, res) => {
-	if (!req.user || req.isUnauthenticated()) {
-		return res.redirect("/login")
-	}
-
-	const newNote = new Note()
-	const title1 = req.body.noteTitle.replace(/[^0-9a-z]/gi, '')
-	const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
-
-	newNote.title = req.body.noteTitle;
-	newNote.content = conten1;
-	newNote.id = `${title1}-${req.body.userid}`;
-	newNote.ownerId = req.body.userid;
-	newNote.ownerName = req.body.username;
-	newNote.public = false
-	newNote.save()
-	res.redirect(`/notes/${title1}-${req.body.userid}`)
-})
-
-app.get("/notes/:id", async (req, res) => {
-	try {
-		console.log(req.params)
-		const noteObj = await Note.findOne({ id: req.params.id });
-		if (!noteObj || noteObj === undefined) {
-			return res.status(404).send("Cannot find note")
-		}
-
-		if (!noteObj.public) {
-			if (!req.user || req.isUnauthenticated()) {
-				return res.redirect('/login')
-			} else {
-				res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1", id: req.params.id })
-			}
-		} else {
-			res.render('spa/note-viewer', { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1", id: req.params.id })
-		}
-	} catch (e) {
-		throw new Error(e)
-	}
-})
-
-app.get("/notes/edit/:id", async (req, res) => {
-	try {
-		if (!req.user || req.isUnauthenticated()) {
-			return res.redirect("/login")
-		}
-
-		const data = await Note.findOne({ id: req.params.id })
-		res.render('spa/editor', { noteName: data.title, noteContent: data.content, user: req.user, noteId: req.params.id })
-
-		console.log("new edit")
-	} catch (error) {
-		throw new Error(error)
-	}
-})
-app.post("/notes/edit/:id", async (req, res) => {
-	try {
-		const conten1 = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
-
-		const data = await Note.findOneAndUpdate({ id: req.params.id })
-		data.title = req.body.noteTitle;
-		data.content = conten1;
-		data.public = false;
-		data.save();
-		return res.redirect(`/notes/${req.params.id}`)
-	} catch (e) {
-		throw new Error(e)
-	}
-})
-
-app.get("/notes/delete/:id", async (req, res) => {
-	try {
-		const note = await Note.deleteOne({ id: req.params.id })
-		res.render('spa/deleted', { noteName: req.params.id })
-	} catch (error) {
-		throw new Error(error)
-	}
-})
-
-// Media Manager
-app.get("/media/:userid/:mediatype/:filename", async (req, res) => {
-	res.sendFile(Path.join(__dirname, 'storage/', req.params.userid, req.params.mediatype, req.params.filename))
-})
-
-app.get("/login", async (req, res) => {
-	if (req.isAuthenticated()) {
-		res.send("No need to log in again! You're already logged in and authenticated.")
-	} else {
-		res.render('login')
-	}
-})
-// app.get("/register", async (req, res) => {
-// 	if (req.isAuthenticated()) {
-// 		res.redirect("/")
-// 	} else {
-// 		res.render('register')
-// 	}
-// })
-// app.get("/account", ensureAuth, async (req, res) => {
-// 	res.render('account', { user: req.user })
-// })
-app.get("/logout", async function (req, res) {
-	req.logout(function (err) {
-		if (err) { return next(err); }
-		res.render('logout.ejs')
-	});
-})
-
-// app.post("/register", async (req, res) => {
-// 	var email = req.body.username;
-// 	var password = req.body.password;
-// 	var inviteToken = "catzwiththebeanz";
-
-// 	if (req.body.inviteToken !== inviteToken) {
-// 		return res.send("Invalid Invite Token")
-// 	} else {
-// 		User.register({ username: email }, req.body.password, function (err, user) {
-// 			if (err) {
-// 				console.log(err)
-// 			} else {
-// 				Passport.authenticate("local")(req, res, function () {
-// 					res.send("Saved successfully!")
-// 				})
-// 			}
-// 		})
-// 	}
-// })
-// app.post("/login", async (req, res) => {
-// 	const userToBeChecked = new User({
-// 		email: req.body.username,
-// 		password: req.body.password,
-// 	})
-
-// 	req.login(userToBeChecked, function (err) {
-// 		if (err) {
-// 			console.log(err)
-// 			res.redirect("/login")
-// 		} else {
-// 			Passport.authenticate("local")(req, res, function () {
-// 				try {
-// 					const newUser = User.find({ email: req.user.username })
-// 					res.send("Logged in!")
-// 				} catch (error) {
-// 					throw new Error(error)
-// 				}
-// 			})
-// 		}
-
-// 	})
-// })
-
-app.use(Sentry.Handlers.errorHandler());
-app.use(function onError(err, req, res, next) {
-	res.statusCode = 500;
-	res.end(res.sentry + "\n");
-	console.log(err)
-});
-
-
-app.listen(port, () => {
-	console.log("Server is live on port ", port)
-})
-
+// Custom EnsureAuth Function
 function ensureAuth(req, res, next) {
 	try {
 		if (!allowedUsers.includes(req.user.id)) {
@@ -316,3 +179,147 @@ function ensureAuth(req, res, next) {
 	}
 
 }
+
+// Main App Routes
+// Notes Home Page/Where you see all of your notes
+server.get("/", ensureAuth, async (req, res) => {
+	const data = await Note.find({ ownerId: req.user.id });
+	res.render("spa/notes", { user: req.user, notesArray: data });
+});
+// Create new note
+server.get("/notes/new", ensureAuth, async (req, res) => {
+	res.render('spa/new', { user: req.user });
+});
+server.post("/notes/new", async (req, res) => {
+	if (!req.user || req.isUnauthenticated()) {
+		return res.redirect("/login");
+	};
+
+	const newNote = new Note();
+	const modId = req.body.noteTitle.replace(/[^0-9a-z]/gi, '');
+	const modContent = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
+
+	newNote.title = req.body.noteTitle;
+	newNote.content = modContent;
+	newNote.id = `${modId}-${req.body.userid}`;
+	newNote.ownerId = req.body.userId;
+	newNote.ownerName = req.body.username;
+	newNote.public = false;
+	newNote.save();
+
+	res.redirect(`/notes/${modId}-${req.body.userid}`);
+});
+// Note Viewer
+server.get("/notes/:id", async (req, res) => {
+	try {
+		const noteObj = await Note.fineOne({ id: req.params.id });
+		if (!noteObj || noteObj === undefined) {
+			return res.status(404).send("Unknown id");
+		};
+
+		if (!noteObj.public) {
+			if (!req.user || req.isUnauthenticated()) {
+				return res.redirect("/login");
+			} else {
+				return res.render("spa/note-viewer", { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "undefined", id: req.params.id });
+			}
+		} else {
+			return res.render("spa/note-viewer", { noteName: noteObj.title, noteContent: noteObj.content, createdOn: "etst-1", id: req.params.id })
+		};
+	} catch (e) {
+		throw new Error(e);
+	};
+});
+// Note Editor
+server.get("/notes/edit/:id", ensureAuth, async (req, res) => {
+	try {
+		if (!req.user || req.isUnauthenticated()) {
+			return res.render("/login");
+		};
+
+		const noteData = await Note.findOne({ id: req.params.id });
+		return res.render('spa/editor', { noteName: data.title, noteContent: data.content, user: req.user, noteId: req.params.id });
+	} catch (e) {
+		throw new Error(e)
+	};
+});
+server.post("/notes/edit/:id", async (req, res) => {
+	try {
+		if (!req.user || req.isUnauthenticated()) {
+			return res.redirect("/login");
+		};
+
+		const modContent = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
+		const noteObj = await Note.findOneAndUpdate({ id: req.params.id });
+
+		if (!noteObj || noteObj === undefined) {
+			return res.status(404).send("Unknown note");
+		};
+
+		noteObj.title = req.body.noteTitle;
+		noteObj.content = modContent;
+		noteObj.public = false;
+		noteObj.save();
+
+		return res.redirect(`/notes/${req.params.id}`);
+	} catch (e) {
+		throw new Error(e);
+	};
+});
+// Note Delete 
+server.get("/notes/delete/:id", ensureAuth, async (req, res) => {
+	try {
+		if (!req.user || req.isUnauthenticated()) {
+			return res.redirect("/login");
+		};
+
+		const noteObj = await Note.deleteOne({ id: req.params.id });
+		return res.render("spa/deleted", { noteName: req.params.id });
+	} catch (e) {
+		throw new Error(e);
+	}
+})
+
+// Media Manager
+server.get("/media/:userid/:mediatype/:filename", async (req, res) => {
+	try {
+		const mediaRef = ref(blobStorage, `public/${req.params.userid}/${req.params.mediatype}/${req.params.filename}`)
+
+		getDownloadURL(ref(blobStorage, mediaRef)).then((url) => {
+			res.render('imgs/viewer', { imgTitle: mediaRef.name, imgSrc: url });
+		}).catch((e) => res.status(504).send("Theres a high chance that that file does not exist."));
+	} catch (e) {
+		return res.status(504).send("Theres a high chance that that file does not exist.")
+	}
+});
+
+// Authentication Endpoints
+server.get("/login", async (req, res) => {
+	if (req.isAuthenticated()) {
+		return res.redirect("/");
+	} else {
+		return res.render("login");
+	};
+})
+server.get("/logout", ensureAuth, async (req, res) => {
+	try {
+		req.logout(function (err) {
+			if (err) { throw new Error(err); };
+			return res.render('logout');
+		});
+	} catch (e) {
+		throw new Error(e);
+	};
+});
+
+// Sentry Error Handling
+server.use(sentry.Handlers.errorHandler());
+server.use(function onError(err, req, res, next) {
+	res.statusCode = 500;
+	res.end(res.sentry + "\n");
+	log.error(err);
+});
+
+server.listen(4000, () => {
+	log.info(`Server is live at http://localhost:4000`);
+});
