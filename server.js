@@ -67,7 +67,7 @@ const blobStorage = getStorage(fBase);
 log.info("Connected to Firebase Blob Storage");
 
 // Generic Express Middleware Setup
-// server.use(express.static("dist"));
+server.use(express.static("dist"));
 server.use(bodyParser.urlencoded({
 	extended: true
 }));
