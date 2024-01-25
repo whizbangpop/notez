@@ -183,7 +183,12 @@ function ensureAuth(req, res, next) {
 // Main App Routes
 // Notes Home Page/Where you see all of your notes
 server.get("/", ensureAuth, async (req, res) => {
+        console.log(req.user.id)
+
 	const data = await Note.find({ ownerId: req.user.id });
+
+
+	console.log(data)
 	res.render("spa/notes", { user: req.user, notesArray: data });
 });
 // Create new note
@@ -195,6 +200,8 @@ server.post("/notes/new", async (req, res) => {
 		return res.redirect("/login");
 	};
 
+console.log(req.body)
+
 	const newNote = new Note();
 	const modId = req.body.noteTitle.replace(/[^0-9a-z]/gi, '');
 	const modContent = req.body.noteContent.replace(new RegExp('\r?\n', 'g'), '<br />');
@@ -202,7 +209,7 @@ server.post("/notes/new", async (req, res) => {
 	newNote.title = req.body.noteTitle;
 	newNote.content = modContent;
 	newNote.id = `${modId}-${req.body.userid}`;
-	newNote.ownerId = req.body.userId;
+	newNote.ownerId = req.body.userid;
 	newNote.ownerName = req.body.username;
 	newNote.public = false;
 	newNote.save();
@@ -212,7 +219,7 @@ server.post("/notes/new", async (req, res) => {
 // Note Viewer
 server.get("/notes/:id", async (req, res) => {
 	try {
-		const noteObj = await Note.fineOne({ id: req.params.id });
+		const noteObj = await Note.findOne({ id: req.params.id });
 		if (!noteObj || noteObj === undefined) {
 			return res.status(404).send("Unknown id");
 		};
