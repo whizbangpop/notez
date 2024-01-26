@@ -244,7 +244,7 @@ server.get("/notes/edit/:id", ensureAuth, async (req, res) => {
 			return res.render("/login");
 		};
 
-		const data = await Note.findOne({ id: req.params.id });
+		const noteData = await Note.findOne({ id: req.params.id });
 		return res.render('spa/editor', { noteName: data.title, noteContent: data.content, user: req.user, noteId: req.params.id });
 	} catch (e) {
 		throw new Error(e)
